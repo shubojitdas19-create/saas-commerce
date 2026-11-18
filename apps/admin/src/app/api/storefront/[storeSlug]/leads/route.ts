@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { leads, stores } from "@repo/db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
+import { sendNewLeadNotificationEmail, getStoreAdminEmails } from "@/lib/email";
 
 export async function OPTIONS() {
   return NextResponse.json({}, {
@@ -35,6 +36,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ storeSl
       address,
       message,
     });
+
+    // Dispatch Email Notification to Store Owner(s)
+    (async () => {
+      try {
+        const adminEmails = await getStoreAdminEmails(store.id);
+        if (adminEmails.length > 0) {
+          await sendNewLeadNotificationEmail({
+            toEmail: adminEmails,
+            storeName: store.name,
+            storeSlug: store.slug,
+            customerName: name,
+            customerPhone: phone,
+            address: address,
+            message: message || undefined,
+          });
+        }
+      } catch (emailErr) {
+        console.error("Failed to dispatch lead notification email:", emailErr);
+      }
+    })();
 
     return NextResponse.json({ success: true }, { headers: { "Access-Control-Allow-Origin": "*" } });
   } catch (error) {

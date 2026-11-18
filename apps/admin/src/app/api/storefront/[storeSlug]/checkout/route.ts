@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import { decrypt } from "@/lib/encryption";
+import { sendNewOrderNotificationEmail, getStoreAdminEmails } from "@/lib/email";
 
 // Handle CORS for cross-origin requests from your storefront
 export async function OPTIONS() {
@@ -124,6 +125,34 @@ export async function POST(
       
       await db.insert(orderItems).values(itemsToInsert);
     }
+
+    // 5.5. Dispatch Email Notification to Store Owner(s)
+    (async () => {
+      try {
+        const adminEmails = await getStoreAdminEmails(store.id);
+        if (adminEmails.length > 0) {
+          await sendNewOrderNotificationEmail({
+            toEmail: adminEmails,
+            storeName: store.name,
+            storeSlug: store.slug,
+            orderNumber,
+            customerName,
+            customerEmail: customerEmail || undefined,
+            customerPhone,
+            shippingAddress,
+            totalAmount,
+            paymentMethod: paymentMethod === "ONLINE" ? "ONLINE" : "COD",
+            items: items?.map((it: any) => ({
+              name: it.name || it.title || "Product Item",
+              quantity: it.quantity || 1,
+              price: it.price || 0,
+            })),
+          });
+        }
+      } catch (emailErr) {
+        console.error("Failed to dispatch order notification email:", emailErr);
+      }
+    })();
 
     // 6. Return success to the storefront, injecting gateway details ONLY if online
     return NextResponse.json(

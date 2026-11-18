@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { reviews, stores } from "@repo/db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
+import { sendNewReviewNotificationEmail, getStoreAdminEmails } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -142,6 +143,28 @@ export async function POST(
       isVisible: true, // You can set this to false later if you want Admin approval before they show up
       isVerified: false, 
     });
+
+    // Dispatch Email Notification to Store Owner(s)
+    (async () => {
+      try {
+        const adminEmails = await getStoreAdminEmails(store.id);
+        if (adminEmails.length > 0) {
+          await sendNewReviewNotificationEmail({
+            toEmail: adminEmails,
+            storeName: store.name,
+            storeSlug: store.slug,
+            customerName: name,
+            rating: Number(rating),
+            text: text,
+            customerEmail: email || undefined,
+            customerPhone: phone || undefined,
+            location: productId ? `Product ID: ${productId}` : location,
+          });
+        }
+      } catch (emailErr) {
+        console.error("Failed to dispatch review notification email:", emailErr);
+      }
+    })();
 
     return NextResponse.json({ success: true }, { 
       headers: { "Access-Control-Allow-Origin": "*" } 
