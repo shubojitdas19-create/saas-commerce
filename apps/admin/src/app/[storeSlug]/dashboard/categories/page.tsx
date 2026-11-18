@@ -19,7 +19,7 @@ export default function CategoriesPage({ params }: { params: Promise<{ storeSlug
   const [name, setName] = useState("");
   const [categoryList, setCategoryList] = useState<{id: string, name: string, slug: string}[]>([]);
 
-  // Fetch existing categories to display on the page TEST
+  // Fetch existing categories to display on the page
   const loadCategories = () => {
     getCategoriesAction(storeSlug).then((data) => setCategoryList(data));
   };
