@@ -1,0 +1,248 @@
+"use server";
+
+import { cookies } from "next/headers";
+import { db } from "@/lib/db";
+import { products, productMedia, productVariants, users, categories, stores } from "@repo/db";
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import crypto from "crypto";
+
+export async function getCategoriesAction(storeSlug: string) {
+  try {
+    const store = await db.query.stores.findFirst({
+      where: eq(stores.slug, storeSlug),
+    });
+    if (!store) return [];
+
+    const storeCategories = await db.query.categories.findMany({
+      where: eq(categories.storeId, store.id),
+      orderBy: (categories, { asc }) => [asc(categories.name)],
+    });
+    return storeCategories;
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+    return [];
+  }
+}
+
+export async function createProductAction(
+  storeSlug: string,
+  payload: {
+    name: string;
+    brand: string;
+    description: string;
+    basePrice: string;
+    compareAtPrice: string;
+    status: string;
+    categoryId: string;
+    specifications: { label: string; value: string }[];
+    images: string[];
+    variants: { title: string; sku: string; priceOverride: string; stockQuantity: string; attachedImageIndex: number }[];
+  }
+) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("tenant_session")?.value;
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const currentUser = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+    if (!currentUser) return { success: false, error: "User not found" };
+
+    const productSlug = payload.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-') 
+      .replace(/(^-|-$)+/g, '');   
+      
+    const newProductId = crypto.randomUUID();
+
+    await db.insert(products).values({
+      id: newProductId,
+      storeId: currentUser.storeId,
+      categoryId: payload.categoryId || null,
+      brand: payload.brand || null,
+      name: payload.name,
+      slug: productSlug,
+      description: payload.description,
+      basePrice: payload.basePrice,
+      discountPrice: payload.compareAtPrice || null,
+      isArchived: payload.status === "draft",
+      isFeatured: false,
+      specifications: payload.specifications,
+    });
+
+    const uploadedImagesMap: { url: string; id: string }[] = [];
+    
+    if (payload.images && payload.images.length > 0) {
+      const mediaRecords = payload.images.map((url, index) => {
+        const mediaId = crypto.randomUUID();
+        uploadedImagesMap.push({ url, id: mediaId }); 
+        
+        return {
+          id: mediaId,
+          productId: newProductId,
+          url: url,
+          mediaType: "image" as const,
+          sortOrder: index,
+        };
+      });
+
+      await db.insert(productMedia).values(mediaRecords);
+    }
+
+    if (payload.variants && payload.variants.length > 0) {
+      const variantRecords = payload.variants.map((v) => {
+        let linkedImageId = null;
+        if (v.attachedImageIndex >= 0 && v.attachedImageIndex < uploadedImagesMap.length) {
+          linkedImageId = uploadedImagesMap[v.attachedImageIndex].id;
+        }
+
+        return {
+          id: crypto.randomUUID(),
+          productId: newProductId,
+          title: v.title,
+          sku: v.sku || null,
+          priceOverride: v.priceOverride || null,
+          stockQuantity: parseInt(v.stockQuantity) || 0,
+          imageId: linkedImageId,
+        };
+      });
+      
+      await db.insert(productVariants).values(variantRecords);
+    }
+
+    revalidatePath(`/${storeSlug}/dashboard/products`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Database Error:", error);
+    return { success: false, error: "Failed to save product to the database." };
+  }
+}
+
+export async function bulkImportAsianPaintsAction(storeSlug: string, productsJson: any[]) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("tenant_session")?.value;
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const currentUser = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    const store = await db.query.stores.findFirst({ where: eq(stores.slug, storeSlug) });
+    if (!currentUser || !store) return { success: false, error: "User or Store not found" };
+
+    const existingCategories = await db.query.categories.findMany({
+      where: eq(categories.storeId, store.id),
+    });
+    const categoryMap = new Map(existingCategories.map(c => [c.name.toLowerCase(), c.id]));
+
+    const categoryMapper: Record<string, string> = {
+      "Interior": "Interior Emulsions",
+      "Exterior": "Exterior Weathercoats",
+      "Waterproofing": "Waterproofing",
+      "Wood Finishes": "Wood & Metal Enamels",
+      "Metal Paints": "Wood & Metal Enamels",
+      "Undercoats": "Putty & Plaster Coat",
+      "Adhesives": "Others"
+    };
+
+    let importedCount = 0;
+
+    for (const item of productsJson) {
+      const isRealProduct = (item.packSizes && item.packSizes.length > 0) || 
+                            (item.features && item.features.length > 0) || 
+                            (item.shades && item.shades.length > 0);
+      
+      if (!isRealProduct) continue;
+
+      const targetCategoryName = categoryMapper[item.category] || "Others";
+      let categoryId = categoryMap.get(targetCategoryName.toLowerCase());
+      
+      if (!categoryId) {
+        categoryId = crypto.randomUUID();
+        await db.insert(categories).values({
+          id: categoryId,
+          storeId: store.id,
+          name: targetCategoryName,
+          slug: targetCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        });
+        categoryMap.set(targetCategoryName.toLowerCase(), categoryId);
+      }
+
+      const productSlug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const newProductId = crypto.randomUUID();
+
+      let basePrice = "0";
+      if (item.packSizes && item.packSizes.length > 0) {
+        const prices = item.packSizes.map((p: any) => parseFloat(p.price.replace(/[^0-9.]/g, '')) || 0);
+        basePrice = Math.min(...prices.filter((p: number) => p > 0)).toString();
+      }
+
+      const specifications = item.features ? item.features.map((f: string) => ({ label: "Feature", value: f })) : [];
+      if (item.shades && item.shades.length > 0) {
+        const shadeNames = item.shades.map((s: any) => `${s.name} (${s.code})`).join(", ");
+        specifications.push({ label: "Available Shades", value: shadeNames });
+      }
+
+      await db.insert(products).values({
+        id: newProductId,
+        storeId: store.id,
+        categoryId: categoryId,
+        brand: item.brand || "Asian Paints",
+        name: item.name,
+        slug: productSlug,
+        description: item.description || "Premium paint product.",
+        basePrice: basePrice,
+        isArchived: false,
+        isFeatured: false,
+        specifications: specifications,
+      });
+
+      let imageId = null;
+      if (item.image) {
+        imageId = crypto.randomUUID();
+        await db.insert(productMedia).values({
+          id: imageId,
+          productId: newProductId,
+          url: item.image,
+          mediaType: "image" as const,
+          sortOrder: 0,
+        });
+      }
+
+      if (item.packSizes && item.packSizes.length > 0) {
+        const variantRecords = item.packSizes.map((pack: any) => {
+          const cleanPrice = pack.price.replace(/[^0-9.]/g, ''); 
+          return {
+            id: crypto.randomUUID(),
+            productId: newProductId,
+            title: pack.volume,
+            sku: pack.sku || null,
+            priceOverride: cleanPrice,
+            stockQuantity: 100,
+            imageId: imageId,
+          };
+        });
+        await db.insert(productVariants).values(variantRecords);
+      } else {
+        await db.insert(productVariants).values({
+          id: crypto.randomUUID(),
+          productId: newProductId,
+          title: "Default Size",
+          priceOverride: basePrice,
+          stockQuantity: 100,
+          imageId: imageId,
+        });
+      }
+
+      importedCount++;
+    }
+
+    revalidatePath(`/${storeSlug}/dashboard/products`);
+    return { success: true, count: importedCount };
+
+  } catch (error) {
+    console.error("Bulk Import Error:", error);
+    return { success: false, error: "Failed to run bulk import." };
+  }
+}

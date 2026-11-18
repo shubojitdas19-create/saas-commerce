@@ -1,0 +1,68 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { products, categories, productMedia } from "@repo/db";
+import { eq, and } from "drizzle-orm";
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const storeId = searchParams.get("storeId");
+    const categorySlug = searchParams.get("category");
+
+    // We must have a storeId to know which tenant's products to return
+    if (!storeId) {
+      return NextResponse.json({ success: false, error: "Store ID is required" }, { status: 400 });
+    }
+
+    let data;
+
+    if (categorySlug) {
+      // 1. Find the specific category for this store
+      const category = await db.query.categories.findFirst({
+        where: and(
+          eq(categories.slug, categorySlug),
+          eq(categories.storeId, storeId)
+        ),
+      });
+
+      if (!category) {
+        return NextResponse.json({ success: false, error: "Category not found" }, { status: 404 });
+      }
+
+      // 2. Fetch active products for that specific category
+      data = await db.query.products.findMany({
+        where: and(
+          eq(products.categoryId, category.id),
+          eq(products.storeId, storeId),
+          eq(products.isArchived, false)
+        ),
+        with: {
+          media: {
+            orderBy: (media, { asc }) => [asc(media.sortOrder)]
+          },
+          variants: true // NEW: Fetch variants so the product page can display sizes/colors
+        }
+      });
+    } else {
+      // 3. Fetch ALL active products for this store (e.g., for a main /shop page)
+      data = await db.query.products.findMany({
+        where: and(
+          eq(products.storeId, storeId),
+          eq(products.isArchived, false)
+        ),
+        with: {
+          category: true,
+          media: {
+            orderBy: (media, { asc }) => [asc(media.sortOrder)]
+          },
+          variants: true // NEW: Fetch variants for the main catalog as well
+        }
+      });
+    }
+
+    return NextResponse.json({ success: true, data });
+  } catch (error) {
+    console.error("Storefront API Error:", error);
+    return NextResponse.json({ success: false, error: "Failed to fetch products" }, { status: 500 });
+  }
+}

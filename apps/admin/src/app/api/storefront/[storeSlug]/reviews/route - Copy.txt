@@ -1,0 +1,153 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { reviews, stores } from "@repo/db";
+import { eq } from "drizzle-orm";
+import crypto from "crypto";
+
+export const dynamic = "force-dynamic";
+
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
+// GET: Fetch internal reviews + dynamic live Google Reviews for ANY store
+export async function GET(
+  req: Request, 
+  { params }: { params: Promise<{ storeSlug: string }> }
+) {
+  try {
+    const { storeSlug } = await params;
+    
+    const store = await db.query.stores.findFirst({
+      where: eq(stores.slug, storeSlug),
+    });
+
+    if (!store) {
+      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+    }
+
+    // 1. Fetch internal reviews from your database
+    const dbData = await db.query.reviews.findMany({
+      where: eq(reviews.storeId, store.id),
+    });
+
+    // Filter for visible internal reviews
+    const visibleDbReviews = dbData.filter(review => review.isVisible);
+
+    // 2. Fetch Google Reviews dynamically based on the store's Place ID
+    let googleReviews: any[] = [];
+    
+    // The API key comes from your .env, but Place ID comes from the store's DB record
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    const placeId = store.googlePlaceId; // Requires adding `googlePlaceId` to your stores database schema
+	
+	console.log("DEBUG Google Fetch:", { apiKey, placeId });
+
+    if (apiKey && placeId) {
+      try {
+        // The New Places API strictly requires the API key in the headers, not the URL
+        const googleRes = await fetch(
+          `https://places.googleapis.com/v1/places/${placeId}?fields=reviews`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': apiKey, // REQUIRED: Passed in header instead of URL query
+              'X-Goog-FieldMask': 'reviews',
+              'Accept-Language': 'en'
+            },
+            // Note: Use { next: { revalidate: 3600 } } in production to save Google API costs
+            cache: 'no-store'
+          }
+        );
+        
+       const googleData = await googleRes.json();
+        
+        // ADD THIS LINE:
+        console.log("GOOGLE API RESPONSE:", JSON.stringify(googleData, null, 2));
+
+        if (googleData.reviews && Array.isArray(googleData.reviews)) {
+          googleReviews = googleData.reviews.map((r: any) => {
+            const reviewDate = r.publishTime ? new Date(r.publishTime).toISOString() : new Date().toISOString();
+            
+            return {
+              id: `google-${r.name || crypto.randomBytes(4).toString("hex")}`,
+              storeId: store.id,
+              customerName: r.authorAttribution?.displayName || "Google User",
+              email: "google-user@placeholder.com", 
+              phone: "N/A",
+              location: "Verified Google Review", 
+              rating: r.rating || 5,
+              text: r.originalText?.text || r.text?.text || "Rated highly on Google.",
+              adminReply: null,
+              isVisible: true,
+              isVerified: true, 
+              createdAt: reviewDate, 
+            };
+          });
+        }
+      } catch (googleError) {
+        console.error(`Failed to fetch Google Reviews for ${storeSlug}:`, googleError);
+      }
+    }
+
+    // 3. Combine both lists and sort them strictly by newest first
+    const combinedReviews = [...visibleDbReviews, ...googleReviews].sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return NextResponse.json({ success: true, data: combinedReviews }, { 
+      headers: { "Access-Control-Allow-Origin": "*" } 
+    });
+  } catch (error) {
+    console.error("Review Fetch API Error:", error);
+    return NextResponse.json({ error: "Failed to fetch reviews." }, { status: 500 });
+  }
+}
+
+// POST: Submit a new review from the storefront
+export async function POST(
+  req: Request, 
+  { params }: { params: Promise<{ storeSlug: string }> }
+) {
+  try {
+    const { storeSlug } = await params;
+    const body = await req.json();
+    
+    const { name, email, phone, location, rating, text } = body;
+
+    const store = await db.query.stores.findFirst({
+      where: eq(stores.slug, storeSlug),
+    });
+
+    if (!store) {
+      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+    }
+
+    await db.insert(reviews).values({
+      id: crypto.randomUUID(),
+      storeId: store.id,
+      customerName: name,
+      email: email,
+      phone: phone,
+      location: location,
+      rating: Number(rating),
+      text: text,
+      isVisible: true,
+      isVerified: false, 
+    });
+
+    return NextResponse.json({ success: true }, { 
+      headers: { "Access-Control-Allow-Origin": "*" } 
+    });
+  } catch (error) {
+    console.error("Review Submit API Error:", error);
+    return NextResponse.json({ error: "Failed to submit review." }, { status: 500 });
+  }
+}
