@@ -1,12 +1,30 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { stores, users } from "@repo/db";
+import { stores, users, storeSettings } from "@repo/db";
 import { eq, and } from "drizzle-orm";
+import type { Metadata } from "next";
 import { TenantSidebar } from "./tenant-sidebar";
 import { TenantAssistant } from "./tenant-assistant";
 import NextTopLoader from 'nextjs-toploader';
-import { Toaster } from 'sonner'; // NEW: Imported Sonner
+import { Toaster } from 'sonner';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ storeSlug: string }>;
+}): Promise<Metadata> {
+  const { storeSlug } = await params;
+  const store = await db.query.stores.findFirst({
+    where: eq(stores.slug, storeSlug),
+  });
+
+  return {
+    title: store ? `${store.name} - Store Dashboard` : "Merchant Dashboard",
+    description: `Administrative Operations Dashboard for ${store?.name || storeSlug} on Vanij Commerce Cloud.`,
+  };
+}
+
 
 export default async function TenantDashboardLayout({
   children,
@@ -43,6 +61,16 @@ export default async function TenantDashboardLayout({
 
   const currentStore = authCheck[0].store;
 
+  // Fetch store settings to get customDomain
+  const settings = await db.query.storeSettings.findFirst({
+    where: eq(storeSettings.storeId, currentStore.id),
+  });
+
+  const customDomain = settings?.customDomain?.trim() || null;
+  const storeWebsiteUrl = customDomain
+    ? (customDomain.startsWith("http") ? customDomain : `https://${customDomain}`)
+    : `/${storeSlug}`;
+
   return (
     <div className="min-h-screen bg-zinc-50 flex">
       {/* 
@@ -69,6 +97,8 @@ export default async function TenantDashboardLayout({
         storeSlug={storeSlug} 
         storeName={currentStore.name} 
         logoUrl={currentStore.logoUrl} 
+        customDomain={customDomain}
+        storeWebsiteUrl={storeWebsiteUrl}
       />
       
       {/* 

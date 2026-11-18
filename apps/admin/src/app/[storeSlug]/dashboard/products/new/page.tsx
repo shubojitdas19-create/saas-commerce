@@ -56,7 +56,7 @@ export default function NewProductPage({ params }: { params: Promise<{ storeSlug
     description: "",
     basePrice: "",
     compareAtPrice: "",
-    status: "draft",
+    status: "active",
     categoryId: "",
   });
 

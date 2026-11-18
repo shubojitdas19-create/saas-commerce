@@ -44,11 +44,14 @@ export async function updateProductAction(
   try {
     const productSlug = payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
+    const defaultBrand = storeSlug === "rabines-stores" ? "Rabines Precision" : null;
+    const resolvedBrand = payload.brand?.trim() || defaultBrand;
+
     // 1. Update core product details including brand, category, and specifications
     await db.update(products).set({
       name: payload.name,
       slug: productSlug,
-      brand: payload.brand || null,
+      brand: resolvedBrand,
       description: payload.description,
       basePrice: payload.basePrice,
       discountPrice: payload.compareAtPrice || null,

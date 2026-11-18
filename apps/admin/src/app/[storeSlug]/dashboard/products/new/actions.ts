@@ -57,11 +57,13 @@ export async function createProductAction(
       
     const newProductId = crypto.randomUUID();
 
+    const resolvedBrand = payload.brand?.trim() || (storeSlug === "rabines-stores" ? "Rabines Precision" : null);
+
     await db.insert(products).values({
       id: newProductId,
       storeId: currentUser.storeId,
       categoryId: payload.categoryId || null,
-      brand: payload.brand || null,
+      brand: resolvedBrand,
       name: payload.name,
       slug: productSlug,
       description: payload.description,

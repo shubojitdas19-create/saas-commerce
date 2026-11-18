@@ -12,7 +12,10 @@ import {
   Search,
   Loader2,
   Pencil,
-  Settings2
+  Settings2,
+  Mail,
+  Send,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { deployTenantAction, getTenantsAction, updateTenantAction } from "./actions";
+import { LaunchEmailModal } from "./launch-email-modal";
 
 type StoreRecord = {
   id: string;
@@ -34,6 +38,7 @@ type StoreRecord = {
   isQuoteBased: boolean; // NEW
   status: string | null;
   plan: string | null;
+  customDomain?: string | null;
   ownerName: string | null;
   ownerEmail: string | null;
   createdAt: Date | string;
@@ -49,6 +54,7 @@ export default function SuperAdminOverview() {
   // Modals
   const [activeKeyModal, setActiveKeyModal] = useState<StoreRecord | null>(null);
   const [activeEditModal, setActiveEditModal] = useState<StoreRecord | null>(null);
+  const [activeLaunchEmailModal, setActiveLaunchEmailModal] = useState<StoreRecord | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // Form State (Create)
@@ -405,6 +411,16 @@ export default function SuperAdminOverview() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-6 space-x-1.5">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 text-xs border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100 hover:text-indigo-950 font-medium gap-1.5 transition-all shadow-2xs" 
+                            onClick={() => setActiveLaunchEmailModal(store)} 
+                            title="Send Official Store Launch Handover Email"
+                          >
+                            <Send className="h-3 w-3 text-indigo-600" />
+                            <span>Handover Email</span>
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100" onClick={() => setActiveEditModal(store)} title="Edit Store">
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -558,6 +574,16 @@ export default function SuperAdminOverview() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Official Launch Handover Email Dispatcher Modal */}
+      <LaunchEmailModal
+        store={activeLaunchEmailModal}
+        isOpen={!!activeLaunchEmailModal}
+        onClose={() => setActiveLaunchEmailModal(null)}
+        onSuccess={() => {
+          fetchStores();
+        }}
+      />
     </div>
   );
 }

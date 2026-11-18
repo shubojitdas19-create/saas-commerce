@@ -242,7 +242,7 @@ function VanijAnimatedAvatar({ size = "md", isWaving = true }: { size?: "sm" | "
 
         {/* Animated Waving Hand */}
         {isWaving && (
-          <g className="vanij-waving-hand" transform-origin="41 28">
+          <g className="vanij-waving-hand">
             <path
               d="M41 28C44 26 46 23 45 20C44 18 41 20 40 23"
               stroke="#34d399"
@@ -543,11 +543,11 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
           {/* Mobile Backdrop Overlay for smooth tap-outside dismiss */}
           <div
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-2xs z-50 sm:hidden animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/40 backdrop-blur-2xs z-[60] sm:hidden animate-in fade-in duration-200"
           />
 
           {/* Chat Window: Full-width Bottom Sheet on Mobile, Luxury Floating Drawer on Desktop */}
-          <div className="fixed inset-x-0 bottom-0 z-50 h-[88vh] sm:h-[620px] sm:w-[450px] sm:inset-auto sm:bottom-6 sm:right-6 bg-white sm:rounded-2xl rounded-t-[28px] shadow-2xl border border-zinc-200/90 flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-250">
+          <div className="fixed inset-x-0 bottom-0 z-[60] h-[88vh] sm:h-[620px] sm:w-[450px] sm:inset-auto sm:bottom-6 sm:right-6 bg-white sm:rounded-2xl rounded-t-[28px] shadow-2xl border border-zinc-200/90 flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-250">
             
             {/* Mobile Sheet Pull Indicator */}
             <div className="w-full flex justify-center pt-2 pb-1 bg-zinc-950 sm:hidden">

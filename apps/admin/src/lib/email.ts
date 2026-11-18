@@ -19,7 +19,7 @@ const BASE_DASHBOARD_URL = "https://saas-commerce-mu.vercel.app";
 const DEFAULT_SECURITY_SENDER = "Vanij Security <security@ninthwave.in>";
 const DEFAULT_NOTIFICATION_SENDER = "Vanij Notifications <notifications@ninthwave.in>";
 
-interface BaseEmailResult {
+export interface BaseEmailResult {
   success: boolean;
   id?: string;
   error?: string;
@@ -54,12 +54,14 @@ async function dispatchEmail({
   subject,
   html,
   replyTo,
+  attachments,
 }: {
   from: string;
   to: string | string[];
   subject: string;
   html: string;
   replyTo?: string;
+  attachments?: Array<{ filename: string; path?: string; content?: string }>;
 }): Promise<BaseEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -78,6 +80,10 @@ async function dispatchEmail({
 
     if (replyTo) {
       payload.reply_to = replyTo;
+    }
+
+    if (attachments && attachments.length > 0) {
+      payload.attachments = attachments;
     }
 
     const response = await fetch(RESEND_API_URL, {
@@ -800,5 +806,48 @@ export async function sendNewReviewNotificationEmail({
     to: toEmail,
     subject: `⭐ New ${starCount}-Star Review for ${storeName} from ${customerName}`,
     html,
+  });
+}
+
+// ============================================================================
+// 5. OFFICIAL STORE LAUNCH HANDOVER EMAIL (SUPER ADMIN PORTAL)
+// ============================================================================
+
+export {
+  generateStoreLaunchHandoverHtml,
+  type StoreLaunchHandoverEmailOptions,
+  type HandoverAttachment,
+  type DomainOwnershipType,
+  type HostingSetupType,
+} from "./email-templates/launch-handover";
+
+import {
+  generateStoreLaunchHandoverHtml,
+  type StoreLaunchHandoverEmailOptions,
+} from "./email-templates/launch-handover";
+
+/**
+ * Dispatch Store Launch Handover Email via Resend
+ * Supports dynamic domain/hosting and file attachments (PDF/JPG/PNG).
+ */
+export async function sendStoreLaunchHandoverEmail(options: StoreLaunchHandoverEmailOptions): Promise<BaseEmailResult> {
+  const { toEmail, storeName, supportEmail = "support@ninthwave.in", attachments = [] } = options;
+
+  const html = generateStoreLaunchHandoverHtml(options);
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Vanij <notifications@ninthwave.in>";
+
+  // Resend accepts { filename: string, path: string } for remote URLs
+  const emailAttachments = attachments.map((att) => ({
+    filename: att.name,
+    path: att.url,
+  }));
+
+  return dispatchEmail({
+    from: fromEmail,
+    to: toEmail,
+    subject: `Your Store ${storeName} Is Now Live! — Admin Access, Domain & Launch Handover`,
+    html,
+    replyTo: supportEmail,
+    attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
   });
 }

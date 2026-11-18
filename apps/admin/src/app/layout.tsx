@@ -9,8 +9,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SJ Digital Studio - Core Platform Console",
-  description: "Enterprise Multi-Tenant Headless Commerce Engine",
+  title: {
+    default: "Vanij - Modern E-Commerce Platform",
+    template: "%s | Vanij",
+  },
+  description: "Enterprise Multi-Tenant Headless Commerce Platform by Ninthwave Technologies.",
+  icons: {
+    icon: "/logo/vanij-icon.png",
+    shortcut: "/logo/vanij-icon.png",
+    apple: "/logo/vanij-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -20,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased bg-zinc-50 text-zinc-900 selection:bg-zinc-900 selection:text-white">
+      <body className="font-sans antialiased bg-zinc-50 text-zinc-900 selection:bg-purple-600 selection:text-white">
         {children}
       </body>
     </html>
