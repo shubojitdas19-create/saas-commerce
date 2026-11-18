@@ -102,7 +102,7 @@ export default function CategoriesPage({ params }: { params: Promise<{ storeSlug
           </Card>
         </div>
 
-        {/* Right Column: Existing Categories List */}
+        {/* Right Column: Existing Categories List test*/}
         <div className="lg:col-span-2">
           <Card className="shadow-sm border-zinc-200">
             <CardHeader>
