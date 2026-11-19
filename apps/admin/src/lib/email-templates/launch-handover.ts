@@ -35,6 +35,10 @@ export interface StoreLaunchHandoverEmailOptions {
   // Attachments (PDFs, JPGs, PNGs)
   attachments?: HandoverAttachment[];
   
+  // Optional CC and BCC recipients
+  cc?: string | string[];
+  bcc?: string | string[];
+
   customNote?: string;
   senderName?: string;
   supportEmail?: string;
@@ -473,7 +477,7 @@ export function generateStoreLaunchHandoverHtml(options: StoreLaunchHandoverEmai
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #334155; line-height: 20px;">
-                      🤖 <strong>Vanij AI (24/7 Assistant):</strong> Use your built-in Vanij AI copilot inside the dashboard for round-the-clock store guidance and operational help.
+                      🤖 <strong>Vanij AI (24/7 Assistant):</strong> Use your built-in Vanij AI assistant inside the dashboard for round-the-clock store guidance and operational help.
                     </td>
                   </tr>
                 </table>

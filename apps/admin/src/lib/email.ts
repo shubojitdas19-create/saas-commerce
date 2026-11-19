@@ -54,6 +54,8 @@ async function dispatchEmail({
   subject,
   html,
   replyTo,
+  cc,
+  bcc,
   attachments,
 }: {
   from: string;
@@ -61,6 +63,8 @@ async function dispatchEmail({
   subject: string;
   html: string;
   replyTo?: string;
+  cc?: string | string[];
+  bcc?: string | string[];
   attachments?: Array<{ filename: string; path?: string; content?: string }>;
 }): Promise<BaseEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -80,6 +84,30 @@ async function dispatchEmail({
 
     if (replyTo) {
       payload.reply_to = replyTo;
+    }
+
+    if (cc) {
+      const ccList = Array.isArray(cc)
+        ? cc.map((e) => e.trim()).filter((e) => Boolean(e) && e.includes("@"))
+        : cc
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => Boolean(e) && e.includes("@"));
+      if (ccList.length > 0) {
+        payload.cc = ccList;
+      }
+    }
+
+    if (bcc) {
+      const bccList = Array.isArray(bcc)
+        ? bcc.map((e) => e.trim()).filter((e) => Boolean(e) && e.includes("@"))
+        : bcc
+            .split(",")
+            .map((e) => e.trim())
+            .filter((e) => Boolean(e) && e.includes("@"));
+      if (bccList.length > 0) {
+        payload.bcc = bccList;
+      }
     }
 
     if (attachments && attachments.length > 0) {
@@ -831,7 +859,7 @@ import {
  * Supports dynamic domain/hosting and file attachments (PDF/JPG/PNG).
  */
 export async function sendStoreLaunchHandoverEmail(options: StoreLaunchHandoverEmailOptions): Promise<BaseEmailResult> {
-  const { toEmail, storeName, supportEmail = "support@ninthwave.in", attachments = [] } = options;
+  const { toEmail, storeName, supportEmail = "support@ninthwave.in", attachments = [], cc, bcc } = options;
 
   const html = generateStoreLaunchHandoverHtml(options);
   const fromEmail = process.env.RESEND_FROM_EMAIL || "Vanij <notifications@ninthwave.in>";
@@ -845,6 +873,8 @@ export async function sendStoreLaunchHandoverEmail(options: StoreLaunchHandoverE
   return dispatchEmail({
     from: fromEmail,
     to: toEmail,
+    cc,
+    bcc,
     subject: `Your Store ${storeName} Is Now Live! — Admin Access, Domain & Launch Handover`,
     html,
     replyTo: supportEmail,

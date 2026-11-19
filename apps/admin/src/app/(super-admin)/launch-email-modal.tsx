@@ -111,6 +111,12 @@ export function LaunchEmailModal({
   const [activationDate, setActivationDate] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
   
+  // CC & BCC States
+  const [ccEmails, setCcEmails] = useState("");
+  const [bccEmails, setBccEmails] = useState("");
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
+  
   // Attachments State
   const [attachments, setAttachments] = useState<HandoverAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -147,6 +153,10 @@ export function LaunchEmailModal({
       setPlanName("Domain + Managed Cloud Hosting (Complimentary — Year 1)");
       setActivationDate(formatDate(now));
       setRenewalDate(formatDate(nextYear));
+      setCcEmails("");
+      setBccEmails("");
+      setShowCc(false);
+      setShowBcc(false);
       setAttachments([]);
       setCustomNote("");
       setActiveTab("edit");
@@ -167,6 +177,8 @@ export function LaunchEmailModal({
   const emailPayload: StoreLaunchHandoverEmailOptions = useMemo(() => {
     return {
       toEmail,
+      cc: ccEmails.trim() ? ccEmails.trim() : undefined,
+      bcc: bccEmails.trim() ? bccEmails.trim() : undefined,
       clientName,
       storeName,
       storeSlug: store?.slug || "",
@@ -186,6 +198,8 @@ export function LaunchEmailModal({
     };
   }, [
     toEmail,
+    ccEmails,
+    bccEmails,
     clientName,
     storeName,
     store?.slug,
@@ -221,8 +235,13 @@ export function LaunchEmailModal({
     try {
       const res = await sendLaunchHandoverEmailAction(emailPayload);
       if (res.success) {
+        const extraRecipients = [
+          ccEmails.trim() ? `CC: ${ccEmails.trim()}` : null,
+          bccEmails.trim() ? `BCC: ${bccEmails.trim()}` : null,
+        ].filter(Boolean).join(" • ");
+
         toast.success(`Official Launch Email successfully delivered to ${toEmail}!`, {
-          description: `Store: ${storeName} • Password updated in database • Admin: ${loginEmail}`,
+          description: `Store: ${storeName} • Password synced to DB${extraRecipients ? ` • ${extraRecipients}` : ""}`,
         });
         if (onSuccess) onSuccess();
         onClose();
@@ -310,7 +329,34 @@ export function LaunchEmailModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-zinc-700 font-semibold">Recipient Email (Delivery Address)</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-zinc-700 font-semibold">Recipient Email (Delivery Address)</Label>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowCc(!showCc)}
+                        className={`text-[11px] font-semibold px-2 py-0.5 rounded transition-all ${
+                          showCc || ccEmails
+                            ? "bg-indigo-100 text-indigo-700 font-bold"
+                            : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100"
+                        }`}
+                      >
+                        {showCc ? "- CC" : "+ CC"}
+                      </button>
+                      <span className="text-zinc-300 text-xs">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowBcc(!showBcc)}
+                        className={`text-[11px] font-semibold px-2 py-0.5 rounded transition-all ${
+                          showBcc || bccEmails
+                            ? "bg-purple-100 text-purple-700 font-bold"
+                            : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100"
+                        }`}
+                      >
+                        {showBcc ? "- BCC" : "+ BCC"}
+                      </button>
+                    </div>
+                  </div>
                   <Input
                     type="email"
                     value={toEmail}
@@ -322,6 +368,44 @@ export function LaunchEmailModal({
                     className="text-sm bg-zinc-50/50 font-medium"
                   />
                 </div>
+
+                {/* Optional CC Field */}
+                {(showCc || ccEmails) && (
+                  <div className="space-y-1.5 sm:col-span-2 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30 transition-all">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-indigo-900 flex items-center gap-1">
+                        CC (Carbon Copy)
+                      </Label>
+                      <span className="text-[10px] text-zinc-400">Comma-separated email addresses (visible to all recipients)</span>
+                    </div>
+                    <Input
+                      type="text"
+                      value={ccEmails}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCcEmails(e.target.value)}
+                      placeholder="e.g. cofounder@clientstore.com, partner@business.com"
+                      className="text-xs bg-white font-mono placeholder:font-sans"
+                    />
+                  </div>
+                )}
+
+                {/* Optional BCC Field */}
+                {(showBcc || bccEmails) && (
+                  <div className="space-y-1.5 sm:col-span-2 p-3 rounded-xl border border-purple-100 bg-purple-50/30 transition-all">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-purple-900 flex items-center gap-1">
+                        BCC (Blind Carbon Copy)
+                      </Label>
+                      <span className="text-[10px] text-zinc-400">Comma-separated email addresses (hidden from client)</span>
+                    </div>
+                    <Input
+                      type="text"
+                      value={bccEmails}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBccEmails(e.target.value)}
+                      placeholder="e.g. records@ninthwave.in, audit@ninthwave.in"
+                      className="text-xs bg-white font-mono placeholder:font-sans"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <Label className="text-xs text-zinc-700 font-semibold">Store Brand Name</Label>
@@ -610,9 +694,21 @@ export function LaunchEmailModal({
         {activeTab === "preview" && (
           <div className="flex-1 overflow-y-auto bg-slate-100 p-4">
             <div className="max-w-[650px] mx-auto bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-              <div className="bg-slate-900 text-slate-300 px-4 py-2.5 text-[11px] font-mono flex items-center justify-between border-b border-slate-800">
-                <span>To: &lt;{toEmail || "client@email.com"}&gt;</span>
-                <span className="text-emerald-400 truncate max-w-[320px]">Subject: Your Store {storeName || "[Store]"} Is Now Live!</span>
+              <div className="bg-slate-900 text-slate-300 px-4 py-2.5 text-[11px] font-mono border-b border-slate-800 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span>To: &lt;{toEmail || "client@email.com"}&gt;</span>
+                  <span className="text-emerald-400 truncate max-w-[320px]">Subject: Your Store {storeName || "[Store]"} Is Now Live!</span>
+                </div>
+                {ccEmails && (
+                  <div className="text-slate-400 text-[10px] truncate">
+                    <span className="text-indigo-400 font-semibold">CC:</span> {ccEmails}
+                  </div>
+                )}
+                {bccEmails && (
+                  <div className="text-slate-400 text-[10px] truncate">
+                    <span className="text-purple-400 font-semibold">BCC:</span> {bccEmails}
+                  </div>
+                )}
               </div>
               <iframe
                 title="Email Preview"

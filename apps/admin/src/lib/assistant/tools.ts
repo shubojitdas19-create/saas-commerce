@@ -381,7 +381,7 @@ export async function createStoreProduct(
       brand: payload.brand || null,
       name: payload.name,
       slug: productSlug,
-      description: payload.description || "Created via Store Copilot.",
+      description: payload.description || "Created via Vanij AI.",
       basePrice: payload.basePrice ? payload.basePrice.toString() : "0.00",
       discountPrice: payload.discountPrice ? payload.discountPrice.toString() : null,
       isArchived: false,

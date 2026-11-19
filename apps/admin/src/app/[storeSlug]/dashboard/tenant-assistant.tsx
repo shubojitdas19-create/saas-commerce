@@ -62,10 +62,10 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
         <Link
           key={`lnk-${match.index}`}
           href={url}
-          className="inline-flex items-center gap-1 px-2.5 py-0.5 mx-1 rounded-md bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-semibold text-xs border border-emerald-200 transition-colors shadow-2xs"
+          className="inline-flex items-center gap-1 px-2.5 py-0.5 mx-1 rounded-md bg-indigo-50 text-indigo-800 hover:bg-indigo-100 font-semibold text-xs border border-indigo-200 transition-colors shadow-2xs"
         >
           {label}
-          <ArrowUpRight className="size-3 text-emerald-600" />
+          <ArrowUpRight className="size-3 text-indigo-600" />
         </Link>
       );
     } else if (match[4] || match[5]) {
@@ -198,63 +198,47 @@ function FormattedMessage({ content }: { content: string }) {
 }
 
 // ========================================================
-// ANIMATED VANIJ ROBOT AVATAR WITH WAVING HAND
+// ANIMATED VANIJ ROBOT AVATAR (OFFICIAL BRAND MASCOT)
 // ========================================================
 
-function VanijAnimatedAvatar({ size = "md", isWaving = true }: { size?: "sm" | "md" | "lg"; isWaving?: boolean }) {
-  const dim = size === "lg" ? "size-12" : size === "sm" ? "size-7" : "size-9";
+function VanijAnimatedAvatar({ 
+  size = "md", 
+  isWaving = true,
+  className = ""
+}: { 
+  size?: "sm" | "md" | "lg" | "xl"; 
+  isWaving?: boolean;
+  className?: string;
+}) {
+  const dim = 
+    size === "xl" ? "size-14" :
+    size === "lg" ? "size-12" : 
+    size === "sm" ? "size-8" : 
+    "size-10";
   
+  const imgSrc = isWaving ? "/vanij-ai/bot-wave.gif" : "/vanij-ai/bot-avatar.png";
+
   return (
-    <div className={`relative ${dim} shrink-0 flex items-center justify-center select-none`}>
-      <svg
-        viewBox="0 0 48 48"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-md"
-      >
-        {/* Subtle glow aura */}
-        <circle cx="24" cy="24" r="22" className="fill-emerald-500/10" />
-
-        {/* Robot Head Outer */}
-        <rect x="8" y="10" width="32" height="28" rx="10" fill="#18181b" stroke="#27272a" strokeWidth="2" />
-        
-        {/* Antenna */}
-        <path d="M24 10V4" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="24" cy="3" r="3" fill="#34d399" className="vanij-antenna-pulse" />
-
-        {/* Face Screen Visor */}
-        <rect x="12" y="15" width="24" height="15" rx="6" fill="#09090b" />
-
-        {/* Digital Eyes with Eye Blink Animation */}
-        <g className="vanij-robot-eyes">
-          <circle cx="19" cy="22" r="3" fill="#10b981" />
-          <circle cx="19" cy="21" r="1" fill="#ecfdf5" />
-          <circle cx="29" cy="22" r="3" fill="#10b981" />
-          <circle cx="29" cy="21" r="1" fill="#ecfdf5" />
-        </g>
-
-        {/* Friendly Mouth Line */}
-        <path d="M21 26C22.2 27.2 25.8 27.2 27 26" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" />
-
-        {/* Robot Ears / Bolts */}
-        <rect x="5" y="20" width="3" height="8" rx="1.5" fill="#52525b" />
-        <rect x="40" y="20" width="3" height="8" rx="1.5" fill="#52525b" />
-
-        {/* Animated Waving Hand */}
-        {isWaving && (
-          <g className="vanij-waving-hand">
-            <path
-              d="M41 28C44 26 46 23 45 20C44 18 41 20 40 23"
-              stroke="#34d399"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </g>
-        )}
-      </svg>
+    <div className={`relative ${dim} shrink-0 flex items-center justify-center select-none ${className}`}>
+      {/* Outer subtle glow matching the purple/indigo theme */}
+      <span className="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-purple-500/50 via-indigo-500/40 to-violet-500/50 blur-xs" />
       
-      {/* Active Online Indicator Ring */}
-      <span className="absolute -bottom-0.5 -right-0.5 size-3 bg-emerald-500 rounded-full ring-2 ring-zinc-950 shadow-xs" />
+      {/* Mascot circular badge container */}
+      <div className="relative w-full h-full rounded-full overflow-hidden border border-purple-400/50 bg-slate-950 shadow-md flex items-center justify-center ring-1 ring-white/15">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imgSrc}
+          alt="Vanij AI Mascot"
+          className="w-full h-full object-cover object-center scale-[1.08] transition-transform duration-300 group-hover:scale-115"
+          loading="eager"
+        />
+      </div>
+
+      {/* Active Online Indicator Ring in Electric Cyan */}
+      <span className="absolute -bottom-0.5 -right-0.5 flex size-2.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+        <span className="relative inline-flex size-2.5 rounded-full bg-cyan-400 ring-2 ring-slate-950 shadow-xs" />
+      </span>
     </div>
   );
 }
@@ -450,28 +434,6 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
           }
         }
 
-        /* Robot Eye Blink Keyframe */
-        @keyframes vanijBlink {
-          0%, 90%, 100% {
-            transform: scaleY(1);
-          }
-          95% {
-            transform: scaleY(0.1);
-          }
-        }
-
-        /* Antenna Glow Pulse */
-        @keyframes vanijPulse {
-          0%, 100% {
-            opacity: 1;
-            filter: drop-shadow(0 0 2px #10b981);
-          }
-          50% {
-            opacity: 0.4;
-            filter: drop-shadow(0 0 6px #34d399);
-          }
-        }
-
         /* Floating Breathing Trigger */
         @keyframes vanijFloat {
           0%, 100% {
@@ -480,20 +442,6 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
           50% {
             transform: translateY(-4px);
           }
-        }
-
-        .vanij-waving-hand {
-          animation: vanijWave 2.8s ease-in-out infinite;
-          transform-origin: 38px 26px;
-        }
-
-        .vanij-robot-eyes {
-          animation: vanijBlink 4.2s infinite;
-          transform-origin: 24px 22px;
-        }
-
-        .vanij-antenna-pulse {
-          animation: vanijPulse 2s infinite;
         }
 
         .vanij-float-trigger {
@@ -506,32 +454,56 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
       {/* ======================================================== */}
       {!isOpen && (
         <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-50 vanij-float-trigger">
+          
+          {/* 1. Mobile Trigger: Pure Animated Mascot ONLY (NO background box, NO green circle) */}
           <button
             onClick={() => setIsOpen(true)}
-            className="group relative flex items-center gap-3 bg-zinc-950 text-white pl-2.5 pr-4 py-2.5 rounded-full shadow-2xl hover:shadow-emerald-500/20 hover:scale-[1.03] active:scale-95 transition-all duration-200 border border-zinc-800/80 backdrop-blur-md"
+            className="sm:hidden group relative flex items-center justify-center p-0 bg-transparent border-0 outline-none focus:outline-none select-none transition-transform active:scale-90"
             aria-label="Open Vanij AI"
           >
-            {/* Ambient Animated Glow Ring */}
-            <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 opacity-20 blur-sm group-hover:opacity-40 transition-opacity" />
+            <div className="relative size-14 drop-shadow-[0_8px_20px_rgba(124,58,237,0.45)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/vanij-ai/bot-wave.gif"
+                alt="Vanij AI"
+                className="w-full h-full object-contain filter drop-shadow-md select-none pointer-events-none"
+              />
+              {/* Active online dot */}
+              <span className="absolute bottom-1 right-1 flex size-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-cyan-400 ring-2 ring-white shadow-xs" />
+              </span>
+            </div>
+          </button>
+
+          {/* 2. Desktop Trigger: Luxury Vanij Brand Palette Pill (Deep midnight violet/indigo, NO green) */}
+          <button
+            onClick={() => setIsOpen(true)}
+            className="hidden sm:flex group relative items-center gap-3 bg-gradient-to-r from-slate-950 via-indigo-950 to-purple-950 text-white pl-2 pr-4 py-2 rounded-full shadow-xl shadow-indigo-950/40 hover:shadow-purple-500/25 hover:scale-[1.04] active:scale-95 transition-all duration-200 border border-purple-500/35 backdrop-blur-md"
+            aria-label="Open Vanij AI"
+          >
+            {/* Ambient Animated Glow Ring in Royal Purple / Indigo */}
+            <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-violet-500 opacity-30 blur-sm group-hover:opacity-65 transition-opacity" />
 
             <div className="relative">
               <VanijAnimatedAvatar size="md" isWaving={true} />
             </div>
 
-            <div className="relative text-left hidden sm:block">
+            <div className="relative text-left">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold tracking-tight text-white">
+                <span className="text-xs font-bold tracking-tight text-white group-hover:text-purple-200 transition-colors">
                   Vanij AI
                 </span>
-                <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-mono px-1 py-0.2 rounded font-semibold border border-emerald-500/30">
-                  SMART
+                <span className="bg-purple-500/25 text-purple-300 text-[9px] font-mono px-1.5 py-0.5 rounded-full font-semibold border border-purple-400/40">
+                  ASSISTANT
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-400 font-medium">
-                Store Copilot & Insights
+              <p className="text-[10px] text-indigo-200/70 font-medium">
+                Store Assistant &amp; Insights
               </p>
             </div>
           </button>
+
         </div>
       )}
 
@@ -543,19 +515,19 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
           {/* Mobile Backdrop Overlay for smooth tap-outside dismiss */}
           <div
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-2xs z-[60] sm:hidden animate-in fade-in duration-200"
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-2xs z-[60] sm:hidden animate-in fade-in duration-200"
           />
 
-          {/* Chat Window: Full-width Bottom Sheet on Mobile, Luxury Floating Drawer on Desktop */}
-          <div className="fixed inset-x-0 bottom-0 z-[60] h-[88vh] sm:h-[620px] sm:w-[450px] sm:inset-auto sm:bottom-6 sm:right-6 bg-white sm:rounded-2xl rounded-t-[28px] shadow-2xl border border-zinc-200/90 flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-250">
+          {/* Chat Window: Modern SaaS Aesthetics matching Vanij Brand */}
+          <div className="fixed inset-x-0 bottom-0 z-[60] h-[88vh] sm:h-[620px] sm:w-[450px] sm:inset-auto sm:bottom-6 sm:right-6 bg-white sm:rounded-2xl rounded-t-[28px] shadow-2xl border border-indigo-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-250">
             
             {/* Mobile Sheet Pull Indicator */}
-            <div className="w-full flex justify-center pt-2 pb-1 bg-zinc-950 sm:hidden">
-              <div className="w-10 h-1 rounded-full bg-zinc-700/80" />
+            <div className="w-full flex justify-center pt-2.5 pb-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-white/40" />
             </div>
 
-            {/* Premium Header */}
-            <div className="bg-zinc-950 text-white px-4 py-3 sm:py-3.5 flex items-center justify-between border-b border-zinc-800/80 shrink-0">
+            {/* Premium Vanij Brand Gradient Header */}
+            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 text-white px-4 py-3 sm:py-3.5 flex items-center justify-between border-b border-indigo-700/40 shadow-xs shrink-0">
               <div className="flex items-center gap-3">
                 <VanijAnimatedAvatar size="md" isWaving={false} />
                 <div>
@@ -563,11 +535,11 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
                     <h3 className="text-sm font-bold tracking-tight text-white">
                       Vanij AI
                     </h3>
-                    <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold border border-emerald-500/30">
+                    <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold border border-white/30 backdrop-blur-xs">
                       LIVE
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-400">
+                  <p className="text-[11px] text-purple-100">
                     Managing {storeName}
                   </p>
                 </div>
@@ -577,14 +549,14 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
                 <button
                   onClick={clearChat}
                   title="Clear chat history"
-                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/80 transition active:scale-95"
+                  className="p-1.5 text-purple-100 hover:text-white rounded-lg hover:bg-white/15 transition active:scale-95"
                 >
                   <RotateCcw className="size-4" />
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
                   title="Close Assistant"
-                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/80 transition active:scale-95"
+                  className="p-1.5 text-purple-100 hover:text-white rounded-lg hover:bg-white/15 transition active:scale-95"
                 >
                   <ChevronDown className="size-5 sm:hidden" />
                   <X className="size-4 hidden sm:block" />
@@ -593,7 +565,22 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
             </div>
 
             {/* Conversation Messages Body (Zero Scrollbar Visible) */}
-            <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto vanij-hide-scrollbar space-y-3.5 bg-zinc-50/70 font-sans">
+            <div className="flex-1 p-3.5 sm:p-4 overflow-y-auto vanij-hide-scrollbar space-y-3.5 bg-gradient-to-b from-indigo-50/25 via-slate-50/40 to-white font-sans">
+              
+              {/* Official Hero Welcome Card featuring bot-badge.png */}
+              {messages.length <= 2 && (
+                <div className="bg-gradient-to-br from-indigo-50/90 via-white to-purple-50/80 p-4 rounded-2xl border border-indigo-100 text-center flex flex-col items-center mb-1 shadow-2xs">
+                  <div className="size-14 rounded-full p-0.5 bg-white shadow-sm border border-purple-200/80 mb-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/vanij-ai/bot-badge.png" alt="Vanij AI Mascot" className="w-full h-full object-contain rounded-full" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 tracking-tight">Vanij AI Store Assistant</h4>
+                  <p className="text-[11px] text-slate-500 max-w-[280px] mt-0.5 leading-relaxed">
+                    Your 24/7 intelligent commerce assistant with direct access to your catalog, orders, and analytics.
+                  </p>
+                </div>
+              )}
+
               {messages.map((m) => {
                 const isAssistant = m.role === "assistant";
                 return (
@@ -601,28 +588,39 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
                     key={m.id}
                     className={`flex flex-col ${isAssistant ? "items-start" : "items-end"}`}
                   >
+                    {/* Author tag with bot-avatar.png for assistant */}
+                    {isAssistant && (
+                      <div className="flex items-center gap-1.5 mb-1 px-1">
+                        <div className="size-4 rounded-full overflow-hidden border border-purple-200 bg-slate-950 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src="/vanij-ai/bot-avatar.png" alt="Vanij" className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-indigo-900">Vanij AI</span>
+                      </div>
+                    )}
+
                     <div
                       className={`relative max-w-[92%] sm:max-w-[88%] rounded-2xl px-4 py-3 text-sm shadow-xs ${
                         isAssistant
-                          ? "bg-white text-zinc-800 border border-zinc-200/90 rounded-tl-sm"
-                          : "bg-zinc-950 text-white rounded-tr-sm"
+                          ? "bg-white text-slate-800 border border-indigo-100/90 rounded-tl-sm shadow-xs"
+                          : "bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 text-white rounded-tr-sm shadow-sm shadow-indigo-500/25"
                       }`}
                     >
                       {isAssistant ? (
                         <FormattedMessage content={m.content} />
                       ) : (
-                        <p className="whitespace-pre-wrap leading-relaxed text-xs sm:text-sm">{m.content}</p>
+                        <p className="whitespace-pre-wrap leading-relaxed text-xs sm:text-sm font-medium">{m.content}</p>
                       )}
 
                       {/* Action Confirmation Badges */}
                       {m.actionsTaken && m.actionsTaken.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-zinc-100 flex flex-col gap-1">
+                        <div className="mt-2.5 pt-2 border-t border-indigo-100/60 flex flex-col gap-1">
                           {m.actionsTaken.map((act, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center gap-1.5 text-xs font-medium text-emerald-800 bg-emerald-50/90 px-2.5 py-1 rounded-md border border-emerald-200/60"
+                              className="flex items-center gap-1.5 text-xs font-semibold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-200/80"
                             >
-                              <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                              <CheckCircle2 className="size-3.5 text-indigo-600 shrink-0" />
                               <span>{act}</span>
                             </div>
                           ))}
@@ -632,7 +630,7 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
 
                     {/* Interactive Action Bar (Copy & Edit) */}
                     <div className="flex items-center gap-1.5 mt-1 px-1 opacity-80 sm:opacity-70 hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] text-zinc-400 mr-0.5">
+                      <span className="text-[10px] text-slate-400 mr-0.5">
                         {new Date(m.timestamp).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -642,7 +640,7 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
                       <button
                         onClick={() => handleCopyMessage(m.id, m.content)}
                         title="Copy message"
-                        className="inline-flex items-center gap-1 text-[11px] text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-md transition shadow-2xs active:scale-95"
+                        className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-700 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 px-2 py-0.5 rounded-md transition shadow-2xs active:scale-95"
                       >
                         {copiedId === m.id ? (
                           <>
@@ -661,7 +659,7 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
                         <button
                           onClick={() => handleStartEdit(m.id, m.content)}
                           title="Edit question"
-                          className="inline-flex items-center gap-1 text-[11px] text-zinc-600 hover:text-zinc-900 bg-white hover:bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-md transition shadow-2xs active:scale-95"
+                          className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-indigo-700 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 px-2 py-0.5 rounded-md transition shadow-2xs active:scale-95"
                         >
                           <Pencil className="size-3" />
                           <span className="text-[10px]">Edit</span>
@@ -672,10 +670,15 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
                 );
               })}
 
+              {/* Computational Analysis Status featuring bot-grid.gif */}
               {isLoading && (
-                <div className="flex items-center gap-2.5 text-zinc-600 bg-white border border-zinc-200/90 w-fit px-3.5 py-2.5 rounded-2xl text-xs shadow-xs animate-in fade-in">
-                  <Loader2 className="size-3.5 animate-spin text-emerald-600 shrink-0" />
-                  <span className="font-medium">Vanij AI is analyzing store records...</span>
+                <div className="flex items-center gap-2.5 text-slate-700 bg-white border border-indigo-100 w-fit px-3.5 py-2.5 rounded-2xl text-xs shadow-xs animate-in fade-in">
+                  <div className="size-6 rounded-full overflow-hidden shrink-0 border border-purple-300 bg-slate-950 flex items-center justify-center shadow-xs">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/vanij-ai/bot-grid.gif" alt="Analyzing..." className="w-full h-full object-cover scale-110" />
+                  </div>
+                  <Loader2 className="size-3.5 animate-spin text-purple-600 shrink-0" />
+                  <span className="font-medium text-xs text-slate-600">Vanij AI is analyzing store records...</span>
                 </div>
               )}
 
@@ -684,12 +687,12 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
 
             {/* Quick Starters Carousel (Zero Scrollbar Visible) */}
             {messages.length <= 2 && !isLoading && (
-              <div className="px-3 py-2 bg-white border-t border-zinc-100 flex items-center gap-2 overflow-x-auto vanij-hide-scrollbar shrink-0">
+              <div className="px-3 py-2 bg-white/90 backdrop-blur-xs border-t border-indigo-100 flex items-center gap-2 overflow-x-auto vanij-hide-scrollbar shrink-0">
                 {quickStarters.map((starter, i) => (
                   <button
                     key={i}
                     onClick={() => handleSendMessage(starter.prompt)}
-                    className="whitespace-nowrap text-[11px] font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-800 px-3 py-1.5 rounded-full border border-zinc-200 transition-all shrink-0 active:scale-95"
+                    className="whitespace-nowrap text-[11px] font-semibold bg-indigo-50/80 hover:bg-indigo-100 text-indigo-900 px-3 py-1.5 rounded-full border border-indigo-200/80 transition-all shrink-0 active:scale-95 shadow-2xs"
                   >
                     {starter.label}
                   </button>
@@ -714,7 +717,7 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
             )}
 
             {/* Bottom Message Input Bar */}
-            <div className="p-3 bg-white border-t border-zinc-200/80 flex items-center gap-2 shrink-0">
+            <div className="p-3 bg-white border-t border-indigo-100 flex items-center gap-2 shrink-0">
               <input
                 ref={inputRef}
                 type="text"
@@ -723,12 +726,12 @@ export function TenantAssistant({ storeSlug, storeName }: TenantAssistantProps) 
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
                 placeholder={editingMessageId ? "Edit your question..." : "Ask Vanij in English, বাংলা, हिंदी..."}
-                className="flex-1 bg-zinc-100/90 border border-zinc-200 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-950/20 disabled:opacity-50 transition"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-400 disabled:opacity-50 transition"
               />
               <button
                 onClick={() => handleSendMessage()}
                 disabled={isLoading || !input.trim()}
-                className="size-10 bg-zinc-950 text-white rounded-xl flex items-center justify-center hover:bg-zinc-800 disabled:opacity-40 transition-all active:scale-95 shrink-0 shadow-xs"
+                className="size-10 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl flex items-center justify-center disabled:opacity-40 transition-all active:scale-95 shrink-0 shadow-md shadow-indigo-500/20"
                 aria-label={editingMessageId ? "Update and send" : "Send message"}
                 title={editingMessageId ? "Update and send" : "Send"}
               >

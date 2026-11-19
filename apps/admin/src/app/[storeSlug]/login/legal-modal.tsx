@@ -113,7 +113,7 @@ export function LegalModal({
               <div>
                 <h4 className="font-bold text-zinc-900 text-sm mb-1">1. Acceptance & Scope of Service</h4>
                 <p>
-                  Vanij is an enterprise e-commerce infrastructure platform providing storefront hosting, order workflow management, real-time analytics, inventory catalogs, AI merchant copilots, and integrated payment processing services. By authenticating into this administrative portal, you represent that you have authority to bind the Merchant and agree to abide by these Terms.
+                  Vanij is an enterprise e-commerce infrastructure platform providing storefront hosting, order workflow management, real-time analytics, inventory catalogs, AI merchant assistants, and integrated payment processing services. By authenticating into this administrative portal, you represent that you have authority to bind the Merchant and agree to abide by these Terms.
                 </p>
               </div>
 
@@ -180,7 +180,7 @@ export function LegalModal({
               <div>
                 <h4 className="font-bold text-zinc-900 text-sm mb-1">2. Purpose of Processing</h4>
                 <p>
-                  We process data exclusively to: (a) operate and deliver your e-commerce storefront; (b) route automated email alerts (orders, customer leads, reviews, and security OTPs); (c) facilitate secure online transactions through encrypted gateway handoffs; and (d) power the Vanij AI merchant copilot for in-store catalog operations.
+                  We process data exclusively to: (a) operate and deliver your e-commerce storefront; (b) route automated email alerts (orders, customer leads, reviews, and security OTPs); (c) facilitate secure online transactions through encrypted gateway handoffs; and (d) power the Vanij AI merchant assistant for in-store catalog operations.
                 </p>
               </div>
 
