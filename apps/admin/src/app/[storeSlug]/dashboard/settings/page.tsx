@@ -16,13 +16,23 @@ import {
   MapPin,
   CreditCard,
   Info,
-  ShieldCheck // NEW: Icon for OTP
+  ShieldCheck,
+  Mail,
+  KeyRound
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { updateStoreLogoAction, updateGooglePlaceIdAction, updatePaymentCredentialsAction, getPaymentSettingsAction } from "./actions";
+import { 
+  updateStoreLogoAction, 
+  updateGooglePlaceIdAction, 
+  updatePaymentCredentialsAction, 
+  getPaymentSettingsAction,
+  requestPaymentGatewayOtpAction,
+  verifyPaymentGatewayOtpAction
+} from "./actions";
 
 export default function SettingsPage({ params }: { params: Promise<{ storeSlug: string }> }) {
   const { storeSlug } = use(params);
@@ -49,8 +59,10 @@ export default function SettingsPage({ params }: { params: Promise<{ storeSlug: 
 
   // OTP Lock State
   const [isLocked, setIsLocked] = useState(false);
-  const [otpStep, setOtpStep] = useState<"hidden" | "sending" | "input">("hidden");
+  const [otpStep, setOtpStep] = useState<"hidden" | "sending" | "input" | "verifying">("hidden");
   const [otpCode, setOtpCode] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState("");
+  const [otpError, setOtpError] = useState("");
 
   useEffect(() => {
     async function loadInitialSettings() {
@@ -130,20 +142,54 @@ export default function SettingsPage({ params }: { params: Promise<{ storeSlug: 
     setIsSavingPayments(false);
   };
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     setOtpStep("sending");
-    // TODO: Actually trigger your SMS/Email OTP API here
-    setTimeout(() => setOtpStep("input"), 1500); // MOCK: Simulate network delay
+    setOtpError("");
+    try {
+      const res = await requestPaymentGatewayOtpAction(storeSlug);
+      if (res.success && res.emailMasked) {
+        setMaskedEmail(res.emailMasked);
+        setOtpStep("input");
+        toast.success(`Verification code dispatched to ${res.emailMasked}`);
+      } else {
+        setOtpStep("hidden");
+        const errMsg = res.error || "Failed to dispatch verification code.";
+        setOtpError(errMsg);
+        toast.error(errMsg);
+      }
+    } catch {
+      setOtpStep("hidden");
+      setOtpError("Unexpected error sending verification code.");
+      toast.error("Failed to dispatch verification code.");
+    }
   };
 
-  const handleVerifyOtp = () => {
-    // TODO: Actually verify the code against your backend here
-    if (otpCode.length > 3) {
-      setIsLocked(false);
-      setOtpStep("hidden");
-      setOtpCode("");
-    } else {
-      alert("Invalid OTP code.");
+  const handleVerifyOtp = async () => {
+    const clean = otpCode.trim();
+    if (clean.length !== 6 || !/^\d{6}$/.test(clean)) {
+      setOtpError("Please enter the 6-digit numeric code sent to your email.");
+      return;
+    }
+
+    setOtpStep("verifying");
+    setOtpError("");
+    try {
+      const res = await verifyPaymentGatewayOtpAction(storeSlug, clean);
+      if (res.success) {
+        setIsLocked(false);
+        setOtpStep("hidden");
+        setOtpCode("");
+        toast.success("Identity verified! Payment gateway settings unlocked.");
+      } else {
+        setOtpStep("input");
+        const errMsg = res.error || "Invalid or expired code.";
+        setOtpError(errMsg);
+        toast.error(errMsg);
+      }
+    } catch {
+      setOtpStep("input");
+      setOtpError("Verification request failed. Please try again.");
+      toast.error("Verification failed.");
     }
   };
 
@@ -184,7 +230,7 @@ export default function SettingsPage({ params }: { params: Promise<{ storeSlug: 
                     <UploadDropzone
                       endpoint="productImage"
                       onUploadBegin={() => setIsUploading(true)}
-                      onClientUploadComplete={(res) => {
+                      onClientUploadComplete={(res: any) => {
                         if (res?.[0]) handleLogoUpload(res[0].url);
                       }}
                       onUploadError={(error: Error) => {
@@ -320,37 +366,92 @@ export default function SettingsPage({ params }: { params: Promise<{ storeSlug: 
                   <div className="space-y-5 pt-1">
                     {isLocked ? (
                       // LOCKED VIEW
-                      <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-6 flex flex-col items-center justify-center text-center space-y-4">
-                        <div className="bg-white p-3 rounded-full border border-zinc-100 shadow-sm">
-                          <ShieldCheck className="size-6 text-emerald-500" />
+                      <div className="bg-gradient-to-b from-zinc-50 to-zinc-100/60 border border-zinc-200/90 rounded-xl p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 shadow-xs">
+                        <div className="size-12 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center shadow-xs">
+                          <ShieldCheck className="size-6" />
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-zinc-900">Gateway Locked Securely</p>
-                          <p className="text-xs text-zinc-500 mt-1">Your store is currently collecting payments via <strong>{paymentProvider.toUpperCase()}</strong>. To modify your API keys or switch providers, you must verify your identity.</p>
+                        <div className="max-w-md space-y-1.5">
+                          <p className="text-base font-semibold text-zinc-950 tracking-tight">Payment Gateway Credentials Locked</p>
+                          <p className="text-xs sm:text-[13px] text-zinc-600 leading-relaxed">
+                            Your store is currently configured to receive live customer payments via <strong className="text-zinc-900 uppercase font-semibold">{paymentProvider}</strong>. To safeguard your payouts and prevent unauthorized changes, modifying API keys requires one-time email authorization.
+                          </p>
                         </div>
                         
                         {otpStep === "hidden" && (
-                          <Button variant="outline" onClick={handleSendOtp} className="mt-2 text-xs bg-white text-zinc-700">
-                            Send OTP to Unlock
-                          </Button>
+                          <div className="pt-2 flex flex-col items-center gap-2">
+                            <Button 
+                              onClick={handleSendOtp} 
+                              className="text-xs bg-zinc-950 hover:bg-zinc-800 text-white font-medium shadow-sm transition-all h-9 px-4"
+                            >
+                              <Mail className="size-3.5 mr-2" />
+                              Send Verification Code to Admin Email
+                            </Button>
+                            {otpError && (
+                              <p className="text-xs text-rose-600 font-medium">{otpError}</p>
+                            )}
+                          </div>
                         )}
+
                         {otpStep === "sending" && (
-                          <Button variant="outline" disabled className="mt-2 text-xs bg-white">
-                            <Loader2 className="size-3 mr-2 animate-spin" /> Sending to phone...
-                          </Button>
+                          <div className="pt-2">
+                            <Button disabled className="text-xs bg-zinc-900 text-white h-9 px-4">
+                              <Loader2 className="size-3.5 mr-2 animate-spin text-emerald-400" />
+                              Dispatching Code via Email...
+                            </Button>
+                          </div>
                         )}
-                        {otpStep === "input" && (
-                          <div className="flex flex-col gap-2 mt-2 items-center w-full max-w-[200px]">
+
+                        {(otpStep === "input" || otpStep === "verifying") && (
+                          <div className="flex flex-col gap-3 mt-2 items-center w-full max-w-xs bg-white border border-zinc-200 rounded-lg p-4 shadow-xs">
+                            <div className="text-center space-y-1">
+                              <p className="text-xs text-zinc-600">
+                                Enter the 6-digit code sent to:
+                              </p>
+                              <p className="text-xs font-semibold text-zinc-900 font-mono">
+                                {maskedEmail || "your registered email"}
+                              </p>
+                            </div>
+
                             <Input 
                               type="text"
+                              inputMode="numeric"
+                              maxLength={6}
                               value={otpCode} 
-                              onChange={e => setOtpCode(e.target.value)} 
-                              placeholder="Enter 4-6 digit OTP" 
-                              className="text-center bg-white" 
+                              onChange={e => {
+                                setOtpCode(e.target.value.replace(/\D/g, ''));
+                                setOtpError("");
+                              }}
+                              placeholder="000000" 
+                              className="text-center font-mono text-xl tracking-[0.35em] font-semibold h-11 bg-zinc-50/50 border-zinc-300 focus-visible:ring-zinc-950" 
+                              autoFocus
                             />
-                            <Button onClick={handleVerifyOtp} className="w-full text-xs bg-zinc-950 text-white">
-                              Verify & Unlock
+
+                            {otpError && (
+                              <p className="text-[11px] text-rose-600 font-medium text-center">{otpError}</p>
+                            )}
+
+                            <Button 
+                              onClick={handleVerifyOtp} 
+                              disabled={otpStep === "verifying" || otpCode.length !== 6}
+                              className="w-full text-xs bg-zinc-950 hover:bg-zinc-800 text-white font-semibold h-9"
+                            >
+                              {otpStep === "verifying" ? (
+                                <>
+                                  <Loader2 className="size-3.5 mr-2 animate-spin" /> Verifying Code...
+                                </>
+                              ) : (
+                                "Verify & Unlock Credentials"
+                              )}
                             </Button>
+
+                            <button
+                              type="button"
+                              onClick={handleSendOtp}
+                              disabled={otpStep === "verifying"}
+                              className="text-[11px] text-zinc-500 hover:text-zinc-900 underline transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              Didn't receive code? Resend email
+                            </button>
                           </div>
                         )}
                       </div>

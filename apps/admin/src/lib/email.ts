@@ -370,6 +370,102 @@ export async function sendPasswordResetOtpEmail({
 }
 
 // ============================================================================
+// 1B. PAYMENT GATEWAY / RAZORPAY SECURITY VERIFICATION OTP EMAIL
+// ============================================================================
+
+export interface SendPaymentGatewayOtpEmailOptions {
+  toEmail: string;
+  merchantName: string;
+  storeName: string;
+  otp: string;
+  providerName?: string;
+}
+
+export async function sendPaymentGatewayOtpEmail({
+  toEmail,
+  merchantName,
+  storeName,
+  otp,
+  providerName = "Razorpay",
+}: SendPaymentGatewayOtpEmailOptions): Promise<BaseEmailResult> {
+  const fromEmail = process.env.RESEND_FROM_SECURITY || DEFAULT_SECURITY_SENDER;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  ${getEmailHeadStyles(`Security Verification Code: ${otp} - Vanij`)}
+</head>
+<body style="background-color: #f1f5f9; margin: 0; padding: 0;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="email-wrapper" style="background-color: #f1f5f9; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" class="email-container" style="max-width: 540px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;" cellspacing="0" cellpadding="0" border="0">
+          
+          ${renderModernHeader("Security Verification", "#4f46e5", "#ffffff")}
+
+          <!-- Body Content -->
+          <tr>
+            <td class="email-body-pad" style="padding: 36px 36px 28px 36px; background-color: #ffffff;">
+              <h1 class="mobile-title" style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0; letter-spacing: -0.4px;">
+                Payment Gateway Unlock Request
+              </h1>
+              
+              <p style="font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; line-height: 22px; color: #475569; margin: 0 0 20px 0;">
+                Hello <strong>${merchantName}</strong>,<br>
+                We received a request to unlock and modify the <strong>${providerName}</strong> payment gateway credentials for your store <strong>${storeName}</strong>.
+              </p>
+
+              <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 6px; padding: 12px 16px; margin-bottom: 24px;">
+                <p style="font-family: 'Inter', sans-serif; font-size: 12.5px; color: #334155; margin: 0; line-height: 18px;">
+                  🛡️ <strong>Security Verification:</strong> Modifying payment keys directly impacts live customer transactions and checkout routing. Use the verification code below to authorize this unlock:
+                </p>
+              </div>
+
+              <!-- OTP Display Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 20px 0;">
+                <tr>
+                  <td align="center">
+                    <div style="background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); border: 2px dashed #6366f1; border-radius: 16px; padding: 24px; text-align: center; display: inline-block; width: 100%; box-sizing: border-box;">
+                      <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; font-size: 11px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">
+                        ONE-TIME UNLOCK CODE
+                      </div>
+                      <div class="mobile-otp" style="font-family: 'Courier New', Courier, monospace, sans-serif; font-size: 40px; font-weight: 800; color: #0f172a; letter-spacing: 12px; margin: 6px 0;">
+                        ${otp}
+                      </div>
+                      <div style="font-family: 'Inter', -apple-system, sans-serif; font-size: 12px; color: #64748b; font-weight: 600; margin-top: 8px;">
+                        ⏱️ Valid for 10 minutes only
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="font-family: 'Inter', -apple-system, sans-serif; font-size: 12.5px; line-height: 19px; color: #64748b; margin: 20px 0 0 0;">
+                🔒 If you did not initiate this change in your Vanij dashboard, please do not share this code and verify your store account immediately.
+              </p>
+            </td>
+          </tr>
+
+          ${renderModernFooter(storeName)}
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  return dispatchEmail({
+    from: fromEmail,
+    to: toEmail,
+    subject: `🔐 Security Verification Code: ${otp} - Unlock ${providerName} Settings (${storeName})`,
+    html,
+  });
+}
+
+// ============================================================================
 // 2. NEW ORDER NOTIFICATION EMAIL
 // ============================================================================
 
